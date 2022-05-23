@@ -1,4 +1,4 @@
-import { EIP1193Methods } from "./constants";
+import { EIP1193Methods } from "../constants";
 import useAvalanche, { getEthereum } from "./useAvalanche";
 export default function App() {
   const {
