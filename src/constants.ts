@@ -12,8 +12,9 @@ export const EIP1193Methods = {
 };
 
 export enum chainIDs {
-  avalanche_test = "0xa869",
-  avalance_main = "0xa86a",
+  eth_main = "1",
+  avalanche_test = "43113",
+  avalance_main = "43114",
 }
 
 export const dwindow = window as Dwindow;

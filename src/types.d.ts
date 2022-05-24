@@ -1,11 +1,15 @@
 declare module "@types-app" {
   import { ethers } from "ethers";
-  export interface Ethereum extends ethers.providers.Web3Provider {}
+  export interface Web3Provider extends ethers.providers.Web3Provider {}
   //event handler types
   type AccountChangeHandler = (accounts: string[]) => void;
   type ChangeChangeHandler = (chainId: string) => void;
   interface Dwindow extends Window {
+    xfi?: {
+      ethereum?: any;
+    };
     ethereum?: any;
+    BinanceChain?: any;
   }
 
   //specs: https://eips.ethereum.org/EIPS/eip-3085
@@ -22,7 +26,13 @@ declare module "@types-app" {
   //   rpcUrls?: string[];
   // }
 
-  type WalletIDs = "binance-wallet" | "metamask";
+  type ProviderId = "binance-wallet" | "metamask";
+  type ProviderInfo = {
+    id: WalletIDs;
+    chainId: string;
+    address: string;
+  };
+  type ProviderStatuses = [ProviderInfo | undefined, boolean][];
   type Token = {
     min_denom: string; //avax
     symbol: string; //AVAX

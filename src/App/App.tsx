@@ -1,17 +1,9 @@
 import { EIP1193Methods } from "../constants";
-import useAvalanche, { getEthereum } from "./useAvalanche";
+import { useGetWallet } from "../contexts/WalletContext";
 export default function App() {
-  const {
-    connect,
-    disconnect,
-    address,
-    balance,
-    isBalanceLoading,
-    loading,
-    isAvalanche,
-  } = useAvalanche();
+  const wallet = useGetWallet();
 
-  if (loading) return <div>loading...</div>;
+  if (wallet?.isLoading) return <div>loading...</div>;
 
   return (
     <div>
