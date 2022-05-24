@@ -1,4 +1,9 @@
-import { TokenWithBalance, ProviderId, ProviderStatuses } from "@types-app";
+import {
+  TokenWithBalance,
+  ProviderId,
+  ProviderStatuses,
+  ProviderInfo,
+} from "@types-app";
 import { ethers } from "ethers";
 import {
   PropsWithChildren,
@@ -36,11 +41,21 @@ const initialWalletState: IWalletState = {
   address: "",
   chainId: chainIDs.eth_main,
 };
+
+const initialProviderInfo: ProviderInfo = {
+  address: "initial",
+  chainId: "initial",
+  id: "metamask",
+};
 const initialState: IState = { ...initialWalletState, isLoading: false };
 
 export default function WalletContext(props: PropsWithChildren<{}>) {
   const [isLoading, setIsLoading] = useState(false); //getting wallet resources
   const [wallet, setWallet] = useState<IWalletState>(initialState);
+  const prevProviderInfoRef = useRef<ProviderInfo | undefined>(
+    initialProviderInfo
+  );
+
   const {
     isLoading: isMetamaskLoading, //requesting permission, attaching event listeners
     connect: connectMetamask,
@@ -54,8 +69,6 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
     disconnect: disconnectBinanceWallet,
     providerInfo: binanceWalletInfo,
   } = useInjectedWallet("binance-wallet");
-
-  console.log({ metamaskInfo, binanceWalletInfo });
 
   const providerStatuses: ProviderStatuses = [
     {
@@ -71,22 +84,16 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
     ({ providerInfo, isLoading }) => !isLoading && providerInfo !== undefined
   )?.providerInfo;
 
-  const prevProviderInfo = usePrevious(activeProviderInfo);
-
-  console.log(activeProviderInfo);
-
+  console.log({ activeProviderInfo, prev: prevProviderInfoRef.current });
   //get wallet Balance
   useEffect(() => {
     (async () => {
       setIsLoading(true);
-      if (!activeProviderInfo && prevProviderInfo) {
-        setWallet(initialWalletState);
-        return;
-      }
 
       if (
         activeProviderInfo &&
-        JSON.stringify(activeProviderInfo) !== JSON.stringify(prevProviderInfo)
+        JSON.stringify(activeProviderInfo) !==
+          JSON.stringify(prevProviderInfoRef.current)
       ) {
         const { address, id, chainId } = activeProviderInfo; //found to be defined;
         const provider = new ethers.providers.Web3Provider(
@@ -103,12 +110,14 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
           id,
         };
         setWallet(walletInfo);
+        prevProviderInfoRef.current = activeProviderInfo;
       }
       setIsLoading(false);
     })();
-  }, [activeProviderInfo, prevProviderInfo]);
+  }, [activeProviderInfo]);
 
   const disconnect = useCallback(async () => {
+    console.log(wallet);
     switch (wallet.id) {
       case "metamask":
         await disconnectMetamask();
@@ -124,9 +133,7 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
 
   return (
     <getContext.Provider value={{ ...wallet, isLoading }}>
-      <setContext.Provider
-        value={{ connect: connectBinanceWallet, disconnect }}
-      >
+      <setContext.Provider value={{ connect: connectMetamask, disconnect }}>
         {props.children}
       </setContext.Provider>
     </getContext.Provider>

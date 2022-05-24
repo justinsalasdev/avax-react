@@ -1,5 +1,6 @@
 // import { EIP1193Methods } from "../constants";
 import { useGetWallet, useSetWallet } from "../contexts/WalletContext";
+// import useIncrement from "./useIncrement";
 export default function App() {
   const { isLoading, displayCoin, address, chainId, id } = useGetWallet();
   const { connect, disconnect } = useSetWallet();
@@ -26,7 +27,7 @@ export default function App() {
         <button onClick={connect}>connect metamask</button>
       )}
 
-      <br />
+      {/* <br />
       <br />
       <h4>Features</h4>
       <ul>
@@ -34,7 +35,7 @@ export default function App() {
         <li>address</li>
         <li>option to change to avax network when incorrect network</li>
         <li>TODO: send avax to c-chain address</li>
-      </ul>
+      </ul> */}
     </div>
   );
 }

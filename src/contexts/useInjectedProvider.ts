@@ -19,7 +19,6 @@ export default function useInjectedProvider(providerId: ProviderId) {
   const [chainId, setChainId] = useState<string>();
 
   const injectedProvider = getProvider(providerId);
-  console.log(injectedProvider);
 
   useEffect(() => {
     requestAccess();
@@ -27,7 +26,7 @@ export default function useInjectedProvider(providerId: ProviderId) {
       removeAllListeners(providerId);
     };
     //eslint-disable-next-line
-  }, [providerId]);
+  }, []);
 
   async function requestAccess(isNewConnection = false) {
     if (injectedProvider && (isNewConnection || shouldReconnect) && !address) {
@@ -39,8 +38,6 @@ export default function useInjectedProvider(providerId: ProviderId) {
       const hexChainId = await injectedProvider.request<string>({
         method: EIP1193Methods.eth_chainId,
       });
-
-      console.log({ accounts, hexChainId });
 
       setAddress(accounts[0]);
       setChainId(`${parseInt(hexChainId, 16)}`);
@@ -64,7 +61,6 @@ export default function useInjectedProvider(providerId: ProviderId) {
 
   //useful when user changes account internally via metamask
   const handleAccountsChange: AccountChangeHandler = (accounts) => {
-    console.log(accounts);
     //requestAccounts(new connection) will set the address so no need to set again
     if (accounts.length > 0) {
       setAddress(accounts[0]);
@@ -92,7 +88,7 @@ export default function useInjectedProvider(providerId: ProviderId) {
       await requestAccess(true);
       saveUserAction(actionKey, "connect");
     } catch (err: any) {
-      console.log(err);
+      console.error(err);
       setIsLoading(false);
       //let caller handle error with UI
       if ("code" in err && err.code === 4001) {
