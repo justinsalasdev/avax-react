@@ -56,12 +56,34 @@ export const dwindow = window as Dwindow;
 const avalancheToken: Token = {
   min_denom: "avax",
   symbol: "AVAX",
-  logo: "",
+  logo: "https://cryptologos.cc/logos/avalanche-avax-logo.svg?v=022",
   decimals: 18,
-  erc20_contract: "",
-  chainIdNum: 43114,
+  chainId: "43113",
   rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
   chainName: "Avalanche Fuji Testnet",
   blockExplorerUrl: "https://testnet.snowtrace.io/",
 };
-export const tokenList: Token[] = [avalancheToken];
+
+const binanceToken: Token = {
+  min_denom: "bnb",
+  symbol: "BNB",
+  logo: "https://cryptologos.cc/logos/bnb-bnb-logo.svg?v=022",
+  decimals: 18,
+  chainId: "97",
+  rpcUrl: "https://data-seed-prebsc-1-s2.binance.org:8545",
+  chainName: "Binance Smart Chain Testnet",
+  blockExplorerUrl: "https://testnet.bscscan.com/",
+};
+
+const ethereumToken: Token = {
+  min_denom: "wei",
+  symbol: "ETH",
+  logo: "https://cryptologos.cc/logos/ethereum-eth-logo.svg?v=022",
+  decimals: 18,
+  chainId: "42",
+  rpcUrl: "https://kovan.poa.network",
+  chainName: "Kovan Test Network",
+  blockExplorerUrl: "https://kovan.etherscan.io/",
+};
+
+export const tokenList: Token[] = [avalancheToken, binanceToken, ethereumToken];

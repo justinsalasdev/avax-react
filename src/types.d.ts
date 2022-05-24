@@ -2,6 +2,7 @@ declare module "@types-app" {
   import { ethers } from "ethers";
   export interface Web3Provider extends ethers.providers.Web3Provider {}
 
+  /*** EIP1193 spec https://eips.ethereum.org/EIPS/eip-1193*/
   //request
   interface RequestArguments {
     readonly method: string;
@@ -22,7 +23,6 @@ declare module "@types-app" {
   type AccountChangeHandler = (accounts: string[]) => void;
   type ChainChangeHandler = (chainId: string) => void;
 
-  //from https://eips.ethereum.org/EIPS/eip-1193
   type InjectedProvider = {
     chainId: string;
 
@@ -62,20 +62,26 @@ declare module "@types-app" {
   //   rpcUrls?: string[];
   // }
 
+  type Connection = {
+    name: "";
+  };
+
   type ProviderId = "binance-wallet" | "metamask";
   type ProviderInfo = {
     id: WalletIDs;
     chainId: string;
     address: string;
   };
-  type ProviderStatuses = { providerInfo?: ProviderInfo; isLoading: boolean }[];
+  type ProviderStatus = { providerInfo?: ProviderInfo; isLoading: boolean };
+  type ProviderStatuses = ProviderStatus[];
+
   type Token = {
     min_denom: string; //avax
     symbol: string; //AVAX
     logo: string;
     decimals: number; //18
     erc20_contract?: string; //if not included means, native chain currency
-    chainIdNum: number; // 1-mainnet 97-binance-test 43017-avax
+    chainId: string; // "1"-mainnet "97"-binance-test "43017"-avax
     rpcUrl: string;
 
     //additional info for adding chain in wallet
@@ -83,5 +89,5 @@ declare module "@types-app" {
     blockExplorerUrl: string; //https://testnet.snowtrace.io
   };
 
-  type TokenWithBalance = {};
+  type TokenWithBalance = Token & { balance: string };
 }

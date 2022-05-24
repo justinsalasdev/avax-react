@@ -109,6 +109,7 @@ export default function useInjectedProvider(providerId: ProviderId) {
   };
 }
 
+/***** */
 type Action = "connect" | "disconnect";
 function saveUserAction(key: string, action: Action) {
   localStorage.setItem(key, action);

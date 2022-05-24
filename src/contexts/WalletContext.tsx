@@ -1,5 +1,5 @@
 import { TokenWithBalance, ProviderId, ProviderStatuses } from "@types-app";
-import { ethers } from "ethers";
+import { ethers, utils } from "ethers";
 import {
   PropsWithChildren,
   createContext,
@@ -9,8 +9,8 @@ import {
   useRef,
   useCallback,
 } from "react";
-import { chainIDs } from "../constants";
-import { getProvider } from "../helpers/getProvider";
+import { chainIDs, tokenList } from "../constants";
+
 import useInjectedWallet from "./useInjectedProvider";
 
 type IWalletState = {
@@ -94,18 +94,40 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
         (!prevProviderInfo && !activeProviderInfo) ||
         JSON.stringify(activeProviderInfo) !== JSON.stringify(prevProviderInfo)
       ) {
+        //fetch wallet resources
         setIsWalletLoading(true);
         const { address, id, chainId } = activeProviderInfo!; //found to be defined;
-        const provider = new ethers.providers.Web3Provider(
-          getProvider(id) as any
-        );
-        const min_balance = await provider.getBalance(address);
 
-        const balance = ethers.utils.formatUnits(min_balance, 18);
+        //get token list from server and query corresponding rpc
+        const balanceQueries = tokenList.map((token) => {
+          const jsonProvider = new ethers.providers.JsonRpcProvider(
+            token.rpcUrl
+          );
+          return jsonProvider.getBalance(address);
+        });
+        const queryResult = await Promise.allSettled(balanceQueries);
+
+        //map balances
+        const balances: TokenWithBalance[] = queryResult.map((result, i) =>
+          result.status === "fulfilled"
+            ? {
+                ...tokenList[i],
+                balance: utils.formatUnits(result.value, tokenList[i].decimals),
+              }
+            : { ...tokenList[i], balance: "0" }
+        );
+
+        const dispBalance = balances.find(
+          (balance) => balance.chainId === chainId
+        );
+
         const walletInfo: IWalletState = {
           icon: "",
-          displayCoin: { amount: +balance, symbol: "ETH" },
-          coins: [],
+          displayCoin: {
+            amount: +(dispBalance?.balance || "0"),
+            symbol: dispBalance?.symbol || "ETH",
+          },
+          coins: balances,
           address,
           chainId,
           id,
@@ -117,7 +139,6 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
   }, [activeProviderInfo, prevProviderInfo]);
 
   const disconnect = useCallback(() => {
-    console.log(wallet);
     switch (wallet.id) {
       case "metamask":
         disconnectMetamask();
@@ -161,7 +182,7 @@ export const useGetWallet = () => useContext(getContext);
 
 function usePrevious<T extends object>(value?: T) {
   /**
-   * @param value 1 level deep object
+   * @param value shallow object
    */
   const ref = useRef<T>();
   useEffect(() => {
