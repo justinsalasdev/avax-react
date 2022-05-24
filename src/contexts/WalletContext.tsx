@@ -1,9 +1,4 @@
-import {
-  TokenWithBalance,
-  ProviderId,
-  ProviderStatuses,
-  ProviderInfo,
-} from "@types-app";
+import { TokenWithBalance, ProviderId, ProviderStatuses } from "@types-app";
 import { ethers } from "ethers";
 import {
   PropsWithChildren,
@@ -27,11 +22,14 @@ type IWalletState = {
   id?: ProviderId;
 };
 
-type IState = IWalletState & { isLoading: boolean };
+type IState = IWalletState & {
+  isWalletLoading: boolean;
+  isProviderInitializing: boolean;
+};
 
 type Setters = {
   connect: () => Promise<void>;
-  disconnect: () => Promise<void>;
+  disconnect: () => void;
 };
 
 const initialWalletState: IWalletState = {
@@ -42,10 +40,14 @@ const initialWalletState: IWalletState = {
   chainId: chainIDs.eth_main,
 };
 
-const initialState: IState = { ...initialWalletState, isLoading: false };
+const initialState: IState = {
+  ...initialWalletState,
+  isWalletLoading: false,
+  isProviderInitializing: false,
+};
 
 export default function WalletContext(props: PropsWithChildren<{}>) {
-  const [isLoading, setIsLoading] = useState(false); //getting wallet resources
+  const [isWalletLoading, setIsWalletLoading] = useState(false); //getting wallet resources
   const [wallet, setWallet] = useState<IWalletState>(initialState);
 
   const {
@@ -92,7 +94,7 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
         (!prevProviderInfo && !activeProviderInfo) ||
         JSON.stringify(activeProviderInfo) !== JSON.stringify(prevProviderInfo)
       ) {
-        setIsLoading(true);
+        setIsWalletLoading(true);
         const { address, id, chainId } = activeProviderInfo!; //found to be defined;
         const provider = new ethers.providers.Web3Provider(
           getProvider(id) as any
@@ -110,27 +112,32 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
         };
         setWallet(walletInfo);
       }
-      setIsLoading(false);
+      setIsWalletLoading(false);
     })();
-  }, [activeProviderInfo]);
+  }, [activeProviderInfo, prevProviderInfo]);
 
-  const disconnect = useCallback(async () => {
+  const disconnect = useCallback(() => {
     console.log(wallet);
     switch (wallet.id) {
       case "metamask":
-        await disconnectMetamask();
+        disconnectMetamask();
         break;
-
       case "binance-wallet":
-        await disconnectBinanceWallet();
+        disconnectBinanceWallet();
         break;
       default:
-        console.log("hello");
+        throw new Error("no wallet is connected");
     }
-  }, [wallet]);
+  }, [wallet, disconnectBinanceWallet, disconnectMetamask]);
 
   return (
-    <getContext.Provider value={{ ...wallet, isLoading }}>
+    <getContext.Provider
+      value={{
+        ...wallet,
+        isWalletLoading,
+        isProviderInitializing: isBinanceWalletLoading || isMetamaskLoading,
+      }}
+    >
       <setContext.Provider
         value={{
           connect: connectBinanceWallet,

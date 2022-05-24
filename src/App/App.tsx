@@ -2,10 +2,17 @@
 import { useGetWallet, useSetWallet } from "../contexts/WalletContext";
 // import useIncrement from "./useIncrement";
 export default function App() {
-  const { isLoading, displayCoin, address, chainId, id } = useGetWallet();
+  const {
+    isWalletLoading,
+    isProviderInitializing,
+    displayCoin,
+    address,
+    chainId,
+    id,
+  } = useGetWallet();
   const { connect, disconnect } = useSetWallet();
 
-  if (isLoading) return <div>loading...</div>;
+  if (isProviderInitializing) return <div>loading...</div>;
 
   return (
     <div>
@@ -18,8 +25,8 @@ export default function App() {
         </div>
       )} */}
       <p>wallet id: {id || "none"}</p>
-      <p>chainId: {chainId}</p>
-      <p>address: {address}</p>
+      <p>chainId: {isWalletLoading ? "loading" : chainId}</p>
+      <p>address: {isWalletLoading ? "loading" : address}</p>
       <p>
         balance: {displayCoin.amount} {displayCoin.symbol}
       </p>

@@ -40,8 +40,8 @@ export default function useInjectedProvider(providerId: ProviderId) {
 
       setAddress(accounts[0]);
       setChainId(`${parseInt(hexChainId, 16)}`);
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }
 
   //attachers/detachers
@@ -72,7 +72,7 @@ export default function useInjectedProvider(providerId: ProviderId) {
     }
   };
 
-  async function disconnect() {
+  function disconnect() {
     if (!address) return;
     const injectedProvider = getProvider(providerId);
     if (!injectedProvider) return;
