@@ -73,7 +73,6 @@ export default function useInjectedProvider(providerId: ProviderId) {
   };
 
   async function disconnect() {
-    console.log("disconnect");
     if (!address) return;
     const injectedProvider = getProvider(providerId);
     if (!injectedProvider) return;
