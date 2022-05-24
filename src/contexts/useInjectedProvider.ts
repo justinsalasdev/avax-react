@@ -18,8 +18,6 @@ export default function useInjectedProvider(providerId: ProviderId) {
   const [address, setAddress] = useState<string>();
   const [chainId, setChainId] = useState<string>();
 
-  const injectedProvider = getProvider(providerId);
-
   useEffect(() => {
     requestAccess();
     return () => {
@@ -29,6 +27,7 @@ export default function useInjectedProvider(providerId: ProviderId) {
   }, []);
 
   async function requestAccess(isNewConnection = false) {
+    const injectedProvider = getProvider(providerId);
     if (injectedProvider && (isNewConnection || shouldReconnect) && !address) {
       attachAccountChangeHandler(injectedProvider);
       attachChainChangedHandler(injectedProvider);
@@ -74,12 +73,14 @@ export default function useInjectedProvider(providerId: ProviderId) {
   };
 
   async function disconnect() {
+    console.log("disconnect");
     if (!address) return;
+    const injectedProvider = getProvider(providerId);
     if (!injectedProvider) return;
-    removeAllListeners(providerId);
     setAddress(undefined);
     setChainId(undefined);
     saveUserAction(actionKey, "disconnect");
+    removeAllListeners(providerId);
   }
 
   async function connect() {

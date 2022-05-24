@@ -12,7 +12,6 @@ import {
   useState,
   useEffect,
   useRef,
-  useCallback,
 } from "react";
 import { chainIDs } from "../constants";
 import { getProvider } from "../helpers/getProvider";
@@ -42,19 +41,11 @@ const initialWalletState: IWalletState = {
   chainId: chainIDs.eth_main,
 };
 
-const initialProviderInfo: ProviderInfo = {
-  address: "initial",
-  chainId: "initial",
-  id: "metamask",
-};
 const initialState: IState = { ...initialWalletState, isLoading: false };
 
 export default function WalletContext(props: PropsWithChildren<{}>) {
   const [isLoading, setIsLoading] = useState(false); //getting wallet resources
   const [wallet, setWallet] = useState<IWalletState>(initialState);
-  const prevProviderInfoRef = useRef<ProviderInfo | undefined>(
-    initialProviderInfo
-  );
 
   const {
     isLoading: isMetamaskLoading, //requesting permission, attaching event listeners
@@ -63,38 +54,44 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
     providerInfo: metamaskInfo,
   } = useInjectedWallet("metamask");
 
-  const {
-    isLoading: isBinanceWalletLoading,
-    connect: connectBinanceWallet,
-    disconnect: disconnectBinanceWallet,
-    providerInfo: binanceWalletInfo,
-  } = useInjectedWallet("binance-wallet");
+  // const {
+  //   isLoading: isBinanceWalletLoading,
+  //   connect: connectBinanceWallet,
+  //   disconnect: disconnectBinanceWallet,
+  //   providerInfo: binanceWalletInfo,
+  // } = useInjectedWallet("binance-wallet");
 
   const providerStatuses: ProviderStatuses = [
     {
       providerInfo: metamaskInfo,
       isLoading: isMetamaskLoading,
     },
-    {
-      providerInfo: binanceWalletInfo,
-      isLoading: isBinanceWalletLoading,
-    },
+    // {
+    //   providerInfo: binanceWalletInfo,
+    //   isLoading: isBinanceWalletLoading,
+    // },
   ];
   const activeProviderInfo = providerStatuses.find(
     ({ providerInfo, isLoading }) => !isLoading && providerInfo !== undefined
   )?.providerInfo;
 
-  console.log({ activeProviderInfo, prev: prevProviderInfoRef.current });
+  console.log(activeProviderInfo);
+
+  const prevProviderInfo = usePrevious(activeProviderInfo);
+
   //get wallet Balance
   useEffect(() => {
     (async () => {
-      setIsLoading(true);
+      if (!activeProviderInfo?.id && prevProviderInfo) {
+        setWallet(initialWalletState);
+        return;
+      }
 
       if (
         activeProviderInfo &&
-        JSON.stringify(activeProviderInfo) !==
-          JSON.stringify(prevProviderInfoRef.current)
+        JSON.stringify(activeProviderInfo) !== JSON.stringify(prevProviderInfo)
       ) {
+        setIsLoading(true);
         const { address, id, chainId } = activeProviderInfo; //found to be defined;
         const provider = new ethers.providers.Web3Provider(
           getProvider(id) as any
@@ -110,30 +107,34 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
           id,
         };
         setWallet(walletInfo);
-        prevProviderInfoRef.current = activeProviderInfo;
+        setIsLoading(false);
       }
-      setIsLoading(false);
     })();
   }, [activeProviderInfo]);
 
-  const disconnect = useCallback(async () => {
-    console.log(wallet);
-    switch (wallet.id) {
-      case "metamask":
-        await disconnectMetamask();
-        break;
-      case "binance-wallet":
-        await disconnectBinanceWallet();
-        break;
-      default:
-        console.log("hello");
-    }
-    setWallet(initialWalletState);
-  }, []);
+  // const disconnect = useCallback(async () => {
+  //   console.log(wallet);
+  //   switch (wallet.id) {
+  //     case "metamask":
+  //       await disconnectMetamask();
+  //       break;
+
+  //     case "binance-wallet":
+  //       await disconnectBinanceWallet();
+  //       break;
+  //     default:
+  //       console.log("hello");
+  //   }
+  // }, []);
 
   return (
     <getContext.Provider value={{ ...wallet, isLoading }}>
-      <setContext.Provider value={{ connect: connectMetamask, disconnect }}>
+      <setContext.Provider
+        value={{
+          connect: connectMetamask,
+          disconnect: disconnectMetamask,
+        }}
+      >
         {props.children}
       </setContext.Provider>
     </getContext.Provider>
