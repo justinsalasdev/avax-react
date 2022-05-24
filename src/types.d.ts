@@ -1,9 +1,45 @@
 declare module "@types-app" {
   import { ethers } from "ethers";
   export interface Web3Provider extends ethers.providers.Web3Provider {}
+
+  //request
+  interface RequestArguments {
+    readonly method: string;
+    readonly params?: readonly unknown[] | object;
+  }
+
   //event handler types
+  interface ProviderRpcError extends Error {
+    message: string;
+    code: number;
+    data?: unknown;
+  }
+  interface ProviderConnectInfo {
+    readonly chainId: string;
+  }
+  type DisconnectHandler = (error: ProviderRpcError) => void;
+  type ConnectHandler = (connectInfo: ProviderConnectInfo) => void;
   type AccountChangeHandler = (accounts: string[]) => void;
-  type ChangeChangeHandler = (chainId: string) => void;
+  type ChainChangeHandler = (chainId: string) => void;
+
+  //from https://eips.ethereum.org/EIPS/eip-1193
+  type InjectedProvider = {
+    chainId: string;
+
+    request: <T>(args: RequestArguments) => Promise<T>;
+    on(ev: "connect", listener: ConnectHandler);
+    on(ev: "disconnect", listener: DisconnectHandler);
+    on(ev: "chainChanged", listener: ChainChangeHandler);
+    on(ev: "accountsChanged", listener: AccountChangeHandler);
+
+    removeListener(ev: "connect", listener: ConnectHandler);
+    removeListener(ev: "disconnect", listener: DisconnectHandler);
+    removeListener(ev: "chainChanged", listener: ChainChangeHandler);
+    removeListener(ev: "accountsChanged", listener: AccountChangeHandler);
+
+    removeAllListeners(): unknown;
+  };
+
   interface Dwindow extends Window {
     xfi?: {
       ethereum?: any;
@@ -32,7 +68,7 @@ declare module "@types-app" {
     chainId: string;
     address: string;
   };
-  type ProviderStatuses = [ProviderInfo | undefined, boolean][];
+  type ProviderStatuses = { providerInfo?: ProviderInfo; isLoading: boolean }[];
   type Token = {
     min_denom: string; //avax
     symbol: string; //AVAX

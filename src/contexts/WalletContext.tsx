@@ -6,11 +6,14 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
+  useCallback,
 } from "react";
 import { chainIDs } from "../constants";
+import { getProvider } from "../helpers/getProvider";
 import useInjectedWallet from "./useInjectedProvider";
 
-type IWalletInfo = {
+type IWalletState = {
   icon: string;
   displayCoin: { amount: number; symbol: string };
   coins: TokenWithBalance[];
@@ -19,24 +22,24 @@ type IWalletInfo = {
   id?: ProviderId;
 };
 
-type IWalletState = IWalletInfo & { isLoading: boolean };
+type IState = IWalletState & { isLoading: boolean };
 
 type Setters = {
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
 };
 
-const initialState: IWalletState = {
-  isLoading: false,
+const initialWalletState: IWalletState = {
   icon: "",
   displayCoin: { amount: 0, symbol: "ETH" },
   coins: [],
   address: "",
   chainId: chainIDs.eth_main,
 };
+const initialState: IState = { ...initialWalletState, isLoading: false };
 
 export default function WalletContext(props: PropsWithChildren<{}>) {
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); //getting wallet resources
   const [wallet, setWallet] = useState<IWalletState>(initialState);
   const {
     isLoading: isMetamaskLoading, //requesting permission, attaching event listeners
@@ -45,25 +48,84 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
     providerInfo: metamaskInfo,
   } = useInjectedWallet("metamask");
 
-  const walletStatuses: ProviderStatuses = [[metamaskInfo, isMetamaskLoading]];
-  const [activeWalletInfo] =
-    walletStatuses.find(
-      ([providerInfo, isLoading]) => !isLoading && providerInfo !== undefined
-    ) || [];
+  const {
+    isLoading: isBinanceWalletLoading,
+    connect: connectBinanceWallet,
+    disconnect: disconnectBinanceWallet,
+    providerInfo: binanceWalletInfo,
+  } = useInjectedWallet("binance-wallet");
+
+  console.log({ metamaskInfo, binanceWalletInfo });
+
+  const providerStatuses: ProviderStatuses = [
+    {
+      providerInfo: metamaskInfo,
+      isLoading: isMetamaskLoading,
+    },
+    {
+      providerInfo: binanceWalletInfo,
+      isLoading: isBinanceWalletLoading,
+    },
+  ];
+  const activeProviderInfo = providerStatuses.find(
+    ({ providerInfo, isLoading }) => !isLoading && providerInfo !== undefined
+  )?.providerInfo;
+
+  const prevProviderInfo = usePrevious(activeProviderInfo);
+
+  console.log(activeProviderInfo);
 
   //get wallet Balance
   useEffect(() => {
-    if (activeWalletInfo) {
-      setLoading(true);
-      setWallet({ ...wallet });
-      setLoading(false);
+    (async () => {
+      setIsLoading(true);
+      if (!activeProviderInfo && prevProviderInfo) {
+        setWallet(initialWalletState);
+        return;
+      }
+
+      if (
+        activeProviderInfo &&
+        JSON.stringify(activeProviderInfo) !== JSON.stringify(prevProviderInfo)
+      ) {
+        const { address, id, chainId } = activeProviderInfo; //found to be defined;
+        const provider = new ethers.providers.Web3Provider(
+          getProvider(id) as any
+        );
+        const min_balance = await provider.getBalance(address);
+        const balance = ethers.utils.formatUnits(min_balance, 18);
+        const walletInfo: IWalletState = {
+          icon: "",
+          displayCoin: { amount: +balance, symbol: "ETH" },
+          coins: [],
+          address,
+          chainId,
+          id,
+        };
+        setWallet(walletInfo);
+      }
+      setIsLoading(false);
+    })();
+  }, [activeProviderInfo, prevProviderInfo]);
+
+  const disconnect = useCallback(async () => {
+    switch (wallet.id) {
+      case "metamask":
+        await disconnectMetamask();
+        break;
+      case "binance-wallet":
+        await disconnectBinanceWallet();
+        break;
+      default:
+        console.log("hello");
     }
-  }, [activeWalletInfo]);
+    setWallet(initialWalletState);
+  }, []);
 
   return (
-    <getContext.Provider value={initialState}>
+    <getContext.Provider value={{ ...wallet, isLoading }}>
       <setContext.Provider
-        value={{ connect: connectMetamask, disconnect: disconnectMetamask }}
+        value={{ connect: connectBinanceWallet, disconnect }}
       >
         {props.children}
       </setContext.Provider>
@@ -71,7 +133,7 @@ export default function WalletContext(props: PropsWithChildren<{}>) {
   );
 }
 
-const getContext = createContext<IWalletState>(initialState);
+const getContext = createContext<IState>(initialState);
 const setContext = createContext<Setters>({
   connect: async () => {},
   disconnect: async () => {},
@@ -79,3 +141,14 @@ const setContext = createContext<Setters>({
 
 export const useSetWallet = () => useContext(setContext);
 export const useGetWallet = () => useContext(getContext);
+
+function usePrevious<T extends object>(value?: T) {
+  /**
+   * @param value 1 level deep object
+   */
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]); //
+  return ref.current;
+}

@@ -1,23 +1,28 @@
-import { EIP1193Methods } from "../constants";
-import { useGetWallet } from "../contexts/WalletContext";
+// import { EIP1193Methods } from "../constants";
+import { useGetWallet, useSetWallet } from "../contexts/WalletContext";
 export default function App() {
-  const wallet = useGetWallet();
+  const { isLoading, displayCoin, address, chainId, id } = useGetWallet();
+  const { connect, disconnect } = useSetWallet();
 
-  if (wallet?.isLoading) return <div>loading...</div>;
+  if (isLoading) return <div>loading...</div>;
 
   return (
     <div>
-      {!isAvalanche && (
+      {/* {!isAvalanche && (
         <div>
           <p>not connected to avalanche network</p>
           <button onClick={addAvalancheNetwork}>
-            switch to avalanche network
+            switch to avalanche network1
           </button>
         </div>
-      )}
+      )} */}
+      <p>wallet id: {id || "none"}</p>
+      <p>chainId: {chainId}</p>
       <p>address: {address}</p>
-      <p>balance: {isBalanceLoading ? "..loading" : `${balance} AVAX`}</p>
-      {(address && <button onClick={disconnect}> disconnect</button>) || (
+      <p>
+        balance: {displayCoin.amount} {displayCoin.symbol}
+      </p>
+      {(id && <button onClick={disconnect}> disconnect</button>) || (
         <button onClick={connect}>connect metamask</button>
       )}
 
@@ -34,18 +39,18 @@ export default function App() {
   );
 }
 
-async function addAvalancheNetwork() {
-  await getEthereum()?.send(EIP1193Methods.wallet_addEthereumChain, [
-    {
-      chainId: "0xA869",
-      chainName: "Avalanche Testnet C-Chain",
-      nativeCurrency: {
-        name: "Avalanche",
-        symbol: "AVAX",
-        decimals: 18,
-      },
-      rpcUrls: ["https://api.avax-test.network/ext/bc/C/rpc"],
-      blockExplorerUrls: ["https://testnet.snowtrace.io/"],
-    },
-  ]);
-}
+// async function addAvalancheNetwork() {
+//   await getEthereum()?.send(EIP1193Methods.wallet_addEthereumChain, [
+//     {
+//       chainId: "0xA869",
+//       chainName: "Avalanche Testnet C-Chain",
+//       nativeCurrency: {
+//         name: "Avalanche",
+//         symbol: "AVAX",
+//         decimals: 18,
+//       },
+//       rpcUrls: ["https://api.avax-test.network/ext/bc/C/rpc"],
+//       blockExplorerUrls: ["https://testnet.snowtrace.io/"],
+//     },
+//   ]);
+// }

@@ -8,6 +8,7 @@ export const EIP1193Events = {
 export const EIP1193Methods = {
   eth_requestAccounts: "eth_requestAccounts",
   wallet_addEthereumChain: "wallet_addEthereumChain",
+  eth_chainId: "eth_chainId",
   //others
 };
 

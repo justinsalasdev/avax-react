@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import {
   AccountChangeHandler,
-  ChangeChangeHandler,
-  Dwindow,
-  Web3Provider,
+  ChainChangeHandler,
   ProviderId,
   ProviderInfo,
+  InjectedProvider,
 } from "@types-app";
-import { EIP1193Events, EIP1193Methods } from "../constants";
+import { EIP1193Methods } from "../constants";
+import { getProvider } from "../helpers/getProvider";
 
 export default function useInjectedProvider(providerId: ProviderId) {
+  const actionKey = `${providerId}__pref`;
   //connect only if there's no active wallet
-  const lastAction = retrieveUserAction();
+  const lastAction = retrieveUserAction(actionKey);
   const shouldReconnect = lastAction === "connect";
   const [isLoading, setIsLoading] = useState(true);
-  const [providerInfo, setProviderInfo] = useState<ProviderInfo>();
-  const injectedProvider = getInjectedProvider(providerId);
+  const [address, setAddress] = useState<string>();
+  const [chainId, setChainId] = useState<string>();
+
+  const injectedProvider = getProvider(providerId);
+  console.log(injectedProvider);
 
   useEffect(() => {
     requestAccess();
@@ -26,72 +30,69 @@ export default function useInjectedProvider(providerId: ProviderId) {
   }, [providerId]);
 
   async function requestAccess(isNewConnection = false) {
-    if (
-      injectedProvider &&
-      (isNewConnection || shouldReconnect) &&
-      !providerInfo
-    ) {
+    if (injectedProvider && (isNewConnection || shouldReconnect) && !address) {
       attachAccountChangeHandler(injectedProvider);
       attachChainChangedHandler(injectedProvider);
-      const { result: accounts = [] } = await injectedProvider.send(
-        EIP1193Methods.eth_requestAccounts,
-        []
-      );
-      setProviderInfo({
-        id: providerId,
-        address: accounts[0],
-        chainId: `${injectedProvider.network.chainId}`,
+      const accounts = await injectedProvider.request<string[]>({
+        method: EIP1193Methods.eth_requestAccounts,
       });
+      const hexChainId = await injectedProvider.request<string>({
+        method: EIP1193Methods.eth_chainId,
+      });
+
+      console.log({ accounts, hexChainId });
+
+      setAddress(accounts[0]);
+      setChainId(`${parseInt(hexChainId, 16)}`);
+      setIsLoading(false);
     }
   }
 
   //attachers/detachers
-  const attachChainChangedHandler = (provider: Web3Provider) => {
-    provider.on(EIP1193Events.chainChanged, handleChainChange);
+  const attachChainChangedHandler = (provider: InjectedProvider) => {
+    provider.on("chainChanged", handleChainChange);
   };
-  const attachAccountChangeHandler = (provider: Web3Provider) => {
-    provider.on(EIP1193Events.accountsChanged, handleAccountsChange);
+
+  const attachAccountChangeHandler = (provider: InjectedProvider) => {
+    provider.on("accountsChanged", handleAccountsChange);
   };
 
   //event handlers
-  const handleChainChange: ChangeChangeHandler = (hexChainId) => {
-    providerInfo &&
-      setProviderInfo({
-        ...providerInfo,
-        chainId: `${parseInt(hexChainId, 16)}`,
-      });
+  const handleChainChange: ChainChangeHandler = (hexChainId) => {
+    setChainId(`${parseInt(hexChainId, 16)}`);
   };
 
   //useful when user changes account internally via metamask
   const handleAccountsChange: AccountChangeHandler = (accounts) => {
+    console.log(accounts);
     //requestAccounts(new connection) will set the address so no need to set again
-    if (accounts.length > 0 && providerInfo) {
-      setProviderInfo({
-        ...providerInfo,
-        address: accounts[0],
-      });
+    if (accounts.length > 0) {
+      setAddress(accounts[0]);
       //if no account is found, means user disconnected
     } else {
+      setAddress(undefined);
+      setChainId(undefined);
+      saveUserAction(actionKey, "disconnect");
       removeAllListeners(providerId);
-      setProviderInfo(undefined);
-      saveUserAction("disconnect");
     }
   };
 
   async function disconnect() {
-    if (!providerInfo) return;
+    if (!address) return;
     if (!injectedProvider) return;
     removeAllListeners(providerId);
-    setProviderInfo(undefined);
-    saveUserAction("disconnect");
+    setAddress(undefined);
+    setChainId(undefined);
+    saveUserAction(actionKey, "disconnect");
   }
 
   async function connect() {
     try {
       setIsLoading(true);
       await requestAccess(true);
-      saveUserAction("connect");
+      saveUserAction(actionKey, "connect");
     } catch (err: any) {
+      console.log(err);
       setIsLoading(false);
       //let caller handle error with UI
       if ("code" in err && err.code === 4001) {
@@ -106,22 +107,23 @@ export default function useInjectedProvider(providerId: ProviderId) {
     connect,
     disconnect,
     isLoading,
-    providerInfo,
+    providerInfo:
+      (address && ({ address, chainId, id: providerId } as ProviderInfo)) ||
+      undefined,
   };
 }
 
-const ActionKey = "ethereum_pref";
 type Action = "connect" | "disconnect";
-function saveUserAction(action: Action) {
-  localStorage.setItem(ActionKey, action);
+function saveUserAction(key: string, action: Action) {
+  localStorage.setItem(key, action);
 }
 
-function retrieveUserAction(): Action {
-  return (localStorage.getItem(ActionKey) as Action) || "disconnect";
+function retrieveUserAction(key: string): Action {
+  return (localStorage.getItem(key) as Action) || "disconnect";
 }
 
 function removeAllListeners(providerId: ProviderId) {
-  getInjectedProvider(providerId)?.removeAllListeners();
+  getProvider(providerId)?.removeAllListeners();
 }
 
 export class RejectMetamaskLogin extends Error {
@@ -134,15 +136,3 @@ export class RejectMetamaskLogin extends Error {
 
 //notes: 1 accountChange handler run only on first connect [] --> [something]
 //and revocation of permission [something] --> []
-
-function getInjectedProvider(providerId: ProviderId): Web3Provider | undefined {
-  const dwindow = window as Dwindow;
-  switch (providerId) {
-    case "binance-wallet":
-      return dwindow.BinanceChain;
-    case "metamask":
-      return dwindow.ethereum;
-    default:
-      throw new Error("wallet is not connected");
-  }
-}
