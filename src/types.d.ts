@@ -75,18 +75,24 @@ declare module "@types-app" {
   type ProviderStatus = { providerInfo?: ProviderInfo; isLoading: boolean };
   type ProviderStatuses = ProviderStatus[];
 
+  type ERC20Token = {
+    contractAddr: string;
+    logo: string;
+  };
+
   type Token = {
     min_denom: string; //avax
     symbol: string; //AVAX
     logo: string;
     decimals: number; //18
-    erc20_contract?: string; //if not included means, native chain currency
     chainId: string; // "1"-mainnet "97"-binance-test "43017"-avax
-    rpcUrl: string;
 
     //additional info for adding chain in wallet
+    rpcUrl: string;
     chainName: string; //Avalanche
     blockExplorerUrl: string; //https://testnet.snowtrace.io
+
+    erc20Tokens: ERC20Token[];
   };
 
   type TokenWithBalance = Token & { balance: string };

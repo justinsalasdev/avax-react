@@ -62,6 +62,12 @@ const avalancheToken: Token = {
   rpcUrl: "https://api.avax-test.network/ext/bc/C/rpc",
   chainName: "Avalanche Fuji Testnet",
   blockExplorerUrl: "https://testnet.snowtrace.io/",
+  erc20Tokens: [
+    {
+      logo: "https://cryptologos.cc/logos/bnb-bnb-logo.svg?v=022",
+      contractAddr: "0x1799aFD227E69e64D8fc55e2B5E62A27e21B33C6",
+    },
+  ],
 };
 
 const binanceToken: Token = {
@@ -73,6 +79,7 @@ const binanceToken: Token = {
   rpcUrl: "https://data-seed-prebsc-1-s2.binance.org:8545",
   chainName: "Binance Smart Chain Testnet",
   blockExplorerUrl: "https://testnet.bscscan.com/",
+  erc20Tokens: [],
 };
 
 const ethereumToken: Token = {
@@ -84,6 +91,7 @@ const ethereumToken: Token = {
   rpcUrl: "https://kovan.poa.network",
   chainName: "Kovan Test Network",
   blockExplorerUrl: "https://kovan.etherscan.io/",
+  erc20Tokens: [],
 };
 
 export const tokenList: Token[] = [avalancheToken, binanceToken, ethereumToken];
